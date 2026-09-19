@@ -44,6 +44,14 @@ Updating after a change:
 git pull && docker compose up -d --build
 ```
 
+If you cloned with `sudo` (normal on a Synology, where `/volume1/docker` is
+root-owned), stay consistent and use `sudo` for both — otherwise git stops with
+"detected dubious ownership":
+
+```bash
+sudo git pull && sudo docker-compose up -d --build
+```
+
 The database lives in `./data` on the host, bind-mounted in, so rebuilds never
 touch it and a backup is copying that folder. `restart: unless-stopped` brings
 it back after a reboot. Put nginx or Caddy in front for TLS and a hostname.
