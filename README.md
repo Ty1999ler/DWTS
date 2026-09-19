@@ -27,35 +27,45 @@ Then open <http://127.0.0.1:5000>. On macOS/Linux use `.venv/bin/python` instead
 That seeds a fake half-played season into `data/demo.db` (a separate file — your
 real league is untouched) and serves it on <http://127.0.0.1:5001>.
 
-### On your server
-
-Pick a port nothing else is on — check with `ss -tlnp | grep :8000`. Empty
-output means it's free.
+### On your server — Docker Compose
 
 ```bash
-pip install -r requirements.txt
-gunicorn -w 1 -b 0.0.0.0:8000 app:app
+git clone https://github.com/Ty1999ler/DWTS.git
+cd DWTS
+docker compose up -d --build
 ```
 
-Or with Docker:
+No Python needed on the host. Serves on port **8035**; to change it, drop a
+`.env` next to `docker-compose.yml` with `DWTS_PORT=9000`.
+
+Updating after a change:
 
 ```bash
-docker build -t dwts .
-docker run -d --restart unless-stopped -p 8035:8035 -e DWTS_PORT=8035 -v $(pwd)/data:/app/data dwts
+git pull && docker compose up -d --build
 ```
 
-Swap `8035` for whatever port is free. Both halves of `-p` and the `-e` should
-match, so the port is the same inside and outside the container.
+The database lives in `./data` on the host, bind-mounted in, so rebuilds never
+touch it and a backup is copying that folder. `restart: unless-stopped` brings
+it back after a reboot. Put nginx or Caddy in front for TLS and a hostname.
 
-One worker is deliberate — it's ample for three people and keeps a single
-process talking to the SQLite file. Put nginx or Caddy in front of it for TLS.
+### On your server — without Docker
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+.venv/bin/gunicorn -w 1 -b 0.0.0.0:8035 app:app
+```
+
+Check the port is free first with `ss -tlnp | grep :8035` — empty means free.
+One worker is deliberate: ample for three people, and it keeps a single process
+talking to the SQLite file.
 
 Environment variables:
 
 | Variable | Default | What it does |
 |---|---|---|
 | `DWTS_DB` | `data/league.db` | Where the database file lives |
-| `DWTS_PORT` | `5000` (`8000` in Docker) | Port for `python app.py` and for the Docker image. With gunicorn, set the port in `-b` instead |
+| `DWTS_PORT` | `5000` locally, `8035` in Compose | Port for `python app.py`, and the host port in `docker-compose.yml`. With bare gunicorn, set it in `-b` instead |
 | `DWTS_HOST` | `127.0.0.1` | Set to `0.0.0.0` to accept outside connections |
 | `DWTS_SECRET` | random each start | Signs the "saved" banners. Set it if you run more than one worker |
 
@@ -121,6 +131,7 @@ and flag a possible first perfect score.
 | `charts.py` | Server-rendered SVG charts (no CDN, works offline) |
 | `templates/` | Pages |
 | `static/` | One stylesheet, one small script (theme toggle + chart hover) |
+| `docker-compose.yml` | The server deployment — `docker compose up -d --build` |
 | `load_cast.py` | The real season 35 cast — edit this for a future season |
 | `test_league.py` | Plays a whole fake season through the real routes and checks the maths |
 | `demo.py` | Optional sample league |

@@ -2,8 +2,9 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
+# Copied on its own so a code change doesn't reinstall the dependencies.
 COPY requirements.txt .
-RUN pip install --no-cache-dir Flask gunicorn
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 

@@ -1,0 +1,23 @@
+services:
+  dwts:
+    build: .
+    container_name: dwts
+    restart: unless-stopped
+    ports:
+      # host:container — change the host side in .env, not here.
+      - "${DWTS_PORT:-8035}:8000"
+    volumes:
+      # The league database lives here on the host, so it survives rebuilds
+      # and a backup is just copying this folder.
+      - ./data:/app/data
+    environment:
+      # Optional. Left unset, each start generates a random one, which is fine
+      # for a single worker.
+      DWTS_SECRET: ${DWTS_SECRET:-}
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
