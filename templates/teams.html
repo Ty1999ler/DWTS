@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "macros.html" import avatar %}
+{% block title %}Teams &middot; {{ league_name }}{% endblock %}
+
+{% block content %}
+{% set roster_size = season.settings.roster_size|int %}
+
+<div class="page-head">
+  <div>
+    <h1>Teams</h1>
+    <p class="sub">Every couple, and what they have actually banked for whoever drafted them.</p>
+  </div>
+  <a class="btn" href="{{ url_for('draft') }}">Edit the draft</a>
+</div>
+
+<div class="grid-3">
+  {% for p in table %}
+    {# One y-scale per team card, so a taller line really is more points. #}
+    {% set team_max = p.couples|map(attribute='total')|max if p.couples else 0 %}
+    <div class="team-card">
+      <div class="team-head">
+        <span class="swatch" style="background: var(--series-{{ p.series_index }})"></span>
+        <h2>{{ p.name }}</h2>
+        <div class="pts">
+          <b>{{ p.total|pts }}</b>
+          <small>{{ 'point' if p.total == 1 else 'points' }} &middot; {{ p.alive }} still in</small>
+        </div>
+      </div>
+
+      {% for c in p.couples|sort(attribute='total', reverse=true) %}
+        <a class="couple-row {{ 'out' if c.is_out }}" href="{{ url_for('couple_detail', couple_id=c.id) }}">
+          {{ avatar(c, 38) }}
+          <div class="names">
+            <strong>{{ c.celebrity }}</strong>
+            <small>
+              {% if c.pro %}with {{ c.pro }} &middot; {% endif %}{{ c.status }}
+            </small>
+          </div>
+          {% if c.cumulative %}{{ sparkline(c.cumulative, p.series_index, season.week_labels, team_max)|safe }}{% endif %}
+          <span class="cpts">{{ c.total|pts }}</span>
+        </a>
+      {% endfor %}
+
+      {% for _ in range(roster_size - p.couples|length) %}
+        <div class="empty-slot">Draft slot {{ p.couples|length + loop.index }} &mdash; still open</div>
+      {% endfor %}
+    </div>
+  {% endfor %}
+</div>
+
+{% if season.unassigned %}
+  <div class="card" style="margin-top:18px">
+    <div class="card-head">
+      <h2>Undrafted couples</h2>
+      <span class="hint">Not on anyone's team, so they score nothing</span>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Couple</th><th>Status</th><th class="num">Would have scored</th></tr></thead>
+        <tbody>
+          {% for c in season.unassigned %}
+            <tr>
+              <td><a class="linkish" href="{{ url_for('couple_detail', couple_id=c.id) }}">{{ c.name }}</a></td>
+              <td class="dim">{{ c.status }}</td>
+              <td class="num dim">{{ c.total|pts }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

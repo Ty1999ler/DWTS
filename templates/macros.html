@@ -1,0 +1,18 @@
+{# A couple's photo, or their initials in the colour of whoever drafted them. #}
+{% macro avatar(couple, size=36) -%}
+  {%- set parts = couple.celebrity.split() -%}
+  {%- set initials = ((parts[0][0] if parts else '?') ~ (parts[-1][0] if parts|length > 1 else ''))|upper -%}
+  <span class="avatar{{ ' is-out' if couple.is_out }}"
+        style="--av: var(--series-{{ couple.series_index }});
+               width: {{ size }}px; height: {{ size }}px;
+               font-size: {{ (size * 0.36)|round|int }}px"
+        title="{{ couple.name }}">
+    {#- The initials always sit underneath, so a dead or mistyped photo URL
+        falls back to them instead of leaving an empty circle. -#}
+    {{ initials }}
+    {%- if couple.photo_url -%}
+      <img src="{{ couple.photo_url }}" alt="{{ couple.celebrity }}" loading="lazy"
+           onerror="this.remove()">
+    {%- endif -%}
+  </span>
+{%- endmacro %}

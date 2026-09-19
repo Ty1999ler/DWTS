@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Finale &middot; {{ league_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Finale</h1>
+    <p class="sub">
+      The last two bonuses of the season: <strong>+{{ season.points.finale|pts }}</strong> for reaching the finale
+      and <strong>+{{ season.points.win|pts }}</strong> for lifting the mirrorball.
+    </p>
+  </div>
+</div>
+
+{% set drafted = season.couples|selectattr('player_id')|list %}
+
+{% if not drafted %}
+  <div class="card">
+    <h2>Nothing to mark yet</h2>
+    <p class="dim" style="margin-top:8px">
+      Draft some couples first &mdash; <a class="linkish" href="{{ url_for('draft') }}">draft board</a>.
+    </p>
+  </div>
+{% else %}
+<form method="post" action="{{ url_for('save_finale') }}">
+  <div class="card">
+    <div class="card-head">
+      <h2>Who made it, and who won</h2>
+      <span class="hint">
+        Tick every couple that reached the finale &mdash; as many as you like.
+        The winner counts as a finalist automatically.
+      </span>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Couple</th><th>Drafted by</th>
+            <th class="cbcell" style="text-align:center">Made the finale<br><span style="text-transform:none;letter-spacing:0;font-weight:400">tick any number</span></th>
+            <th class="cbcell" style="text-align:center">Won it all<br><span style="text-transform:none;letter-spacing:0;font-weight:400">pick one</span></th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in drafted %}
+            <tr class="{{ 'gone' if c.is_out }}">
+              <td>
+                <strong>{{ c.celebrity }}</strong>
+                {% if c.pro %}<span class="muted">&amp; {{ c.pro }}</span>{% endif %}
+              </td>
+              <td>
+                <span style="display:inline-flex;align-items:center;gap:7px">
+                  <span class="swatch" style="background: var(--series-{{ c.series_index }})"></span>
+                  <span class="dim">{{ c.player_name }}</span>
+                </span>
+              </td>
+              <td style="text-align:center">
+                <input type="checkbox" name="finalist" value="{{ c.id }}"
+                       {{ 'checked' if c.made_finale }}
+                       style="width:17px;height:17px;accent-color:var(--accent)"
+                       aria-label="{{ c.celebrity }} made the finale">
+              </td>
+              <td style="text-align:center">
+                <input type="radio" name="winner" value="{{ c.id }}" {{ 'checked' if c.won }}
+                       style="width:17px;height:17px;accent-color:var(--accent)"
+                       aria-label="{{ c.celebrity }} won">
+              </td>
+              <td class="dim" style="white-space:nowrap">{{ c.status }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">Save finale</button>
+      <button class="btn btn-sm" type="submit" name="winner" value=""
+              onclick="this.form.querySelectorAll('input[name=winner]').forEach(function(r){r.checked=false})">
+        Clear the winner
+      </button>
+    </div>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

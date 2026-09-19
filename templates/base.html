@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ league_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127919;</text></svg>">
+  <script>
+    // Applied before first paint so there is no flash of the wrong theme.
+    (function () {
+      var saved = localStorage.getItem('dwts-theme');
+      if (saved) document.documentElement.dataset.theme = saved;
+    })();
+  </script>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="{{ url_for('index') }}">
+      <span class="ball" aria-hidden="true"></span>
+      <span>
+        <strong>{{ league_name }}</strong>
+        <small>{{ season_label }}</small>
+      </span>
+    </a>
+    <nav class="nav">
+      {% set page = request.endpoint %}
+      <a href="{{ url_for('index') }}"    class="{{ 'on' if page == 'index' }}">Rankings</a>
+      <a href="{{ url_for('teams') }}"    class="{{ 'on' if page in ('teams', 'couple_detail') }}">Teams</a>
+      <a href="{{ url_for('weeks') }}"    class="{{ 'on' if page in ('weeks', 'week_detail') }}">Weeks</a>
+      <a href="{{ url_for('draft') }}"    class="{{ 'on' if page == 'draft' }}">Draft</a>
+      <a href="{{ url_for('finale') }}"   class="{{ 'on' if page == 'finale' }}">Finale</a>
+      <a href="{{ url_for('settings') }}" class="{{ 'on' if page == 'settings' }}">Settings</a>
+    </nav>
+    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch between light and dark">
+      <span class="t-dark">&#9790;</span><span class="t-light">&#9788;</span>
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flashes">
+        {% for category, message in messages %}
+          <p class="flash flash-{{ category }}">{{ message }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="wrap foot">
+  <span>Scores recalculate from the weekly entries every time you load a page &mdash; fix a mistake in any week and everything downstream follows.</span>
+  <a href="{{ url_for('export_json') }}">Download a backup</a>
+</footer>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

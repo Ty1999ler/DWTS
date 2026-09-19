@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Week {{ week.number }} &middot; {{ league_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Week {{ week.number }}{% if week.label %} <span class="muted" style="font-weight:400">&middot; {{ week.label }}</span>{% endif %}</h1>
+    <p class="sub">
+      {% if week.completed %}This week is counted in the standings.
+      {% else %}Saved as a draft &mdash; tick "count this week" at the bottom when the results are final.{% endif %}
+    </p>
+  </div>
+  <a class="btn" href="{{ url_for('weeks') }}">All weeks</a>
+</div>
+
+{% if not eligible %}
+  <div class="card">
+    <h2>Nobody to score yet</h2>
+    <p class="dim" style="margin-top:8px">
+      Couples have to be drafted before they can earn points.
+      <a class="linkish" href="{{ url_for('draft') }}">Open the draft board</a>.
+    </p>
+  </div>
+{% else %}
+
+{% if perfect_candidates and not season.perfect_claimed_by %}
+  <p class="note" style="margin-bottom:18px">
+    <strong>Possible perfect score.</strong>
+    {{ perfect_candidates|map(attribute='celebrity')|join(', ') }}
+    hit {{ perfect_value|pts }} this week. If it's the season's first, tick the perfect box below.
+  </p>
+{% endif %}
+
+{% if season.perfect_claimed_by %}
+  <p class="note" style="margin-bottom:18px">
+    The first perfect score of the season is already with
+    <strong>{{ season.perfect_claimed_by.celebrity }}</strong>.
+    Ticking it for someone here moves it to them &mdash; it can only be held once.
+  </p>
+{% endif %}
+
+<form method="post" action="{{ url_for('save_week', week_id=week.id) }}">
+  <div class="card">
+    <div class="card-head">
+      <h2>Results</h2>
+      <span class="hint">
+        Judges' scores are optional &middot; if the top score is a tie, tick every couple that shares it
+      </span>
+    </div>
+
+    <div class="table-scroll">
+      <table class="week-grid">
+        <thead>
+          <tr>
+            <th>Couple</th>
+            <th>Drafted by</th>
+            <th>Judges' score</th>
+            <th class="cbcell">Eliminated<br><span style="text-transform:none;letter-spacing:0;font-weight:400">tick any number</span></th>
+            <th class="cbcell">Highest score<br><span style="text-transform:none;letter-spacing:0;font-weight:400">ties all score</span></th>
+            <th class="cbcell">First perfect<br><span style="text-transform:none;letter-spacing:0;font-weight:400">once a season</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in eligible %}
+            {% set e = entries.get(c.id) %}
+            {% set gone_earlier = c.is_out and c.eliminated_week < week.number %}
+            <tr class="{{ 'gone' if gone_earlier }}">
+              <td>
+                <input type="hidden" name="couple_ids" value="{{ c.id }}">
+                <strong>{{ c.celebrity }}</strong>
+                {% if c.pro %}<span class="muted">&amp; {{ c.pro }}</span>{% endif %}
+                {% if gone_earlier %}<br><small class="muted">already out in week {{ c.eliminated_week }}</small>{% endif %}
+              </td>
+              <td>
+                <span style="display:inline-flex;align-items:center;gap:7px">
+                  <span class="swatch" style="background: var(--series-{{ c.series_index }})"></span>
+                  <span class="dim">{{ c.player_name }}</span>
+                </span>
+              </td>
+              <td>
+                <input type="number" step="0.5" min="0" name="score_{{ c.id }}"
+                       value="{{ e['judge_score']|pts if e and e['judge_score'] is not none else '' }}"
+                       placeholder="—" aria-label="Judges' score for {{ c.celebrity }}">
+              </td>
+              <td class="cbcell">
+                <input type="checkbox" name="elim_{{ c.id }}" {{ 'checked' if e and e['eliminated'] }}
+                       aria-label="{{ c.celebrity }} eliminated">
+              </td>
+              <td class="cbcell">
+                <input type="checkbox" name="high_{{ c.id }}" {{ 'checked' if e and e['highest'] }}
+                       aria-label="{{ c.celebrity }} had the highest score">
+              </td>
+              <td class="cbcell">
+                <input type="checkbox" name="perfect_{{ c.id }}" {{ 'checked' if e and e['perfect'] }}
+                       aria-label="{{ c.celebrity }} scored the first perfect score">
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:16px;display:grid;gap:10px">
+      <label class="check">
+        <input type="checkbox" name="auto_highest">
+        Work out "highest score" from the judges' scores I typed above (ties all count)
+      </label>
+      <label class="check">
+        <input type="checkbox" name="completed" {{ 'checked' if week.completed }}>
+        <strong style="color:var(--ink)">Count this week in the standings</strong>
+      </label>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <div class="field-row">
+      <div>
+        <label for="label">Theme for this week</label>
+        <input type="text" id="label" name="label" value="{{ week.label }}" placeholder="e.g. Halloween Night">
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">Save week {{ week.number }}</button>
+      <a class="btn" href="{{ url_for('weeks') }}">Cancel</a>
+    </div>
+  </div>
+</form>
+
+<form method="post" action="{{ url_for('delete_week', week_id=week.id) }}"
+      onsubmit="return confirm('Delete week {{ week.number }} and everything entered for it?')"
+      style="margin-top:14px">
+  <button class="btn btn-sm btn-danger" type="submit">Delete week {{ week.number }}</button>
+</form>
+
+{% endif %}
+{% endblock %}

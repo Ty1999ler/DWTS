@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Weeks &middot; {{ league_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Weeks</h1>
+    <p class="sub">Add a week after each results show, then tick who went home and who topped the leaderboard.</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2>Add a week</h2>
+    <span class="hint">The theme name is optional &mdash; "Disney Night", "Semi-final", whatever</span>
+  </div>
+  <form method="post" action="{{ url_for('add_week') }}">
+    <div class="field-row">
+      <div class="tight" style="width:120px">
+        <label for="number">Week</label>
+        <input type="number" id="number" name="number" value="{{ next_number }}" min="1" required>
+      </div>
+      <div>
+        <label for="label">Theme (optional)</label>
+        <input type="text" id="label" name="label" placeholder="e.g. Motown Night">
+      </div>
+      <div class="tight">
+        <button class="btn btn-primary" type="submit">Add &amp; enter results</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="margin-top:18px">
+  <div class="card-head">
+    <h2>The season so far</h2>
+    <span class="hint">Only completed weeks count toward the standings</span>
+  </div>
+
+  {% if season.weeks %}
+    <div class="weeklist">
+      {% for w in season.weeks %}
+        {% set s = summaries[w.id] %}
+        <a class="weekrow" href="{{ url_for('week_detail', week_id=w.id) }}">
+          <span class="n">Week {{ w.number }}</span>
+          <span class="summary">
+            {% if w.label %}<strong>{{ w.label }}</strong> &middot; {% endif %}
+            {% if s.eliminated %}Out: {{ s.eliminated|join(', ') }}{% else %}No elimination{% endif %}
+            {% if s.highest %} &middot; Top score: {{ s.highest|join(', ') }}{% endif %}
+            {% if s.perfect %} &middot; <span class="crown">perfect score: {{ s.perfect|join(', ') }}</span>{% endif %}
+            {% if s.scored %} &middot; {{ s.scored }} judges' scores logged{% endif %}
+          </span>
+          <span class="chip {{ 'gold' if w.completed }}">
+            {{ 'Counted' if w.completed else 'Draft — not counted' }}
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">No weeks yet. Add week 1 above once the first results show airs.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% from "macros.html" import avatar %}
+{% block title %}{{ couple.name }} &middot; {{ league_name }}{% endblock %}
+
+{% block content %}
+{% set slot = couple.series_index %}
+{% set judges = dict(couple.judge_scores) %}
+
+<div class="page-head">
+  <div style="display:flex;align-items:center;gap:15px">
+    {{ avatar(couple, 62) }}
+    <div>
+    <h1>{{ couple.celebrity }}{% if couple.pro %} <span class="muted" style="font-weight:400">&amp; {{ couple.pro }}</span>{% endif %}</h1>
+    <p class="sub">
+      {% if couple.player_name %}
+        Drafted by
+        <span style="display:inline-flex;align-items:center;gap:6px;vertical-align:-1px">
+          <span class="swatch" style="background: var(--series-{{ slot }})"></span>{{ couple.player_name }}
+        </span>
+      {% else %}Undrafted{% endif %}
+      &middot; {{ couple.status }}
+    </p>
+    </div>
+  </div>
+  <div class="actions" style="margin:0">
+    <a class="btn" href="{{ url_for('teams') }}">All teams</a>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-head"><h2>Fantasy points delivered</h2></div>
+    <div class="score" style="display:flex;align-items:baseline;gap:9px">
+      <b style="font-size:44px;font-weight:700;letter-spacing:-.02em">{{ couple.total|pts }}</b>
+      <span class="muted">points{% if couple.player_name %} for {{ couple.player_name }}{% endif %}</span>
+    </div>
+    {% if couple.cumulative %}
+      <div style="margin-top:14px">
+        {{ sparkline(couple.cumulative, slot, season.week_labels)|safe }}
+        <p class="muted" style="font-size:12px;margin-top:6px">Running total, week 1 to now</p>
+      </div>
+    {% endif %}
+    <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+      {% if couple.won %}<span class="chip gold">&#9733; Mirrorball champion</span>{% endif %}
+      {% if couple.made_finale %}<span class="chip gold">Reached the finale</span>{% endif %}
+      {% if couple.ledger|selectattr('reason', 'equalto', 'perfect')|list %}
+        <span class="chip gold">First perfect score of the season</span>
+      {% endif %}
+      {% set tops = couple.ledger|selectattr('reason', 'equalto', 'highest')|list %}
+      {% if tops %}<span class="chip">{{ tops|length }}&times; highest score of the night</span>{% endif %}
+      {% if couple.is_out %}<span class="chip out">Out in week {{ couple.eliminated_week }}</span>{% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Judges' scores</h2>
+      <span class="hint">Logged for interest &mdash; they don't affect fantasy points</span>
+    </div>
+    {% if judge_chart %}
+      <div class="chart-wrap" data-chart='{{ judge_chart.data }}'>
+        {{ judge_chart.svg|safe }}
+        <div class="tooltip"></div>
+      </div>
+    {% elif couple.judge_scores %}
+      <p class="dim">
+        Week {{ couple.judge_scores[0][0] }}: <strong>{{ couple.judge_scores[0][1]|pts }}</strong>.
+        Log another week to see the trend.
+      </p>
+    {% else %}
+      <p class="muted">No judges' scores logged yet. You can add them on any week's page &mdash; entirely optional.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card" style="margin-top:18px">
+  <div class="card-head">
+    <h2>Week by week</h2>
+    <span class="hint">Every point this couple has earned</span>
+  </div>
+  {% if couple.ledger %}
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Week</th>
+            <th>What happened</th>
+            <th class="num">Judges</th>
+            <th class="num">Points</th>
+            <th class="num">Running</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set ns = namespace(running=0) %}
+          {% for e in couple.ledger %}
+            {% set ns.running = ns.running + e.points %}
+            <tr>
+              <td class="tnum">{{ 'W' ~ e.week_number if e.week_number else '—' }}</td>
+              <td>
+                {{ e.label }}
+                {% if e.note %}<span class="muted">&middot; {{ e.note }}</span>{% endif %}
+                {% if e.week_label and e.week_label != 'Week ' ~ e.week_number %}
+                  <span class="muted">&middot; {{ e.week_label }}</span>
+                {% endif %}
+              </td>
+              <td class="num dim">{{ judges[e.week_number]|pts if e.week_number in judges else '—' }}</td>
+              <td class="num">{{ '+' if e.points > 0 }}{{ e.points|pts }}</td>
+              <td class="num total">{{ ns.running|pts }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">Nothing yet &mdash; points start landing once you mark a week complete.</p>
+  {% endif %}
+</div>
+{% endblock %}

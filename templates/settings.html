@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Settings &middot; {{ league_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Settings</h1>
+    <p class="sub">
+      Change a point value and every score in the app is recalculated from the weekly
+      entries &mdash; nothing needs re-entering.
+    </p>
+  </div>
+</div>
+
+<form method="post" action="{{ url_for('save_settings') }}">
+  <div class="card">
+    <div class="card-head"><h2>Scoring</h2>
+      <span class="hint">Points a couple earns for their owner</span></div>
+
+    <div class="rules">
+      <div class="rule">
+        <label for="pts_survive">Survived the week</label>
+        <input type="number" step="0.5" id="pts_survive" name="pts_survive" value="{{ season.settings.pts_survive }}">
+        <p class="why">Awarded for every completed week the couple isn't sent home.</p>
+      </div>
+      <div class="rule">
+        <label for="pts_highest">Highest score of the night</label>
+        <input type="number" step="0.5" id="pts_highest" name="pts_highest" value="{{ season.settings.pts_highest }}">
+        <p class="why">Ties all get the points.</p>
+      </div>
+      <div class="rule">
+        <label for="pts_perfect">First perfect score</label>
+        <input type="number" step="0.5" id="pts_perfect" name="pts_perfect" value="{{ season.settings.pts_perfect }}">
+        <p class="why">One-off for the whole season. Only one couple can hold it.</p>
+      </div>
+      <div class="rule">
+        <label for="pts_finale">Made the finale</label>
+        <input type="number" step="0.5" id="pts_finale" name="pts_finale" value="{{ season.settings.pts_finale }}">
+        <p class="why">Bonus on top of everything already banked.</p>
+      </div>
+      <div class="rule">
+        <label for="pts_win">Won the mirrorball</label>
+        <input type="number" step="0.5" id="pts_win" name="pts_win" value="{{ season.settings.pts_win }}">
+        <p class="why">Stacks with the finale bonus.</p>
+      </div>
+      <div class="rule">
+        <label for="pts_eliminated">Eliminated</label>
+        <input type="number" step="0.5" id="pts_eliminated" name="pts_eliminated" value="{{ season.settings.pts_eliminated }}">
+        <p class="why">Normally 0. Set it negative if you want going home to hurt.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <div class="card-head"><h2>League</h2></div>
+    <div class="field-row">
+      <div>
+        <label for="league_name">League name</label>
+        <input type="text" id="league_name" name="league_name" value="{{ season.settings.league_name }}">
+      </div>
+      <div>
+        <label for="season_label">Season</label>
+        <input type="text" id="season_label" name="season_label" value="{{ season.settings.season_label }}">
+      </div>
+      <div>
+        <label for="roster_size">Couples per player</label>
+        <input type="number" min="1" id="roster_size" name="roster_size" value="{{ season.settings.roster_size }}">
+      </div>
+      <div>
+        <label for="perfect_score_value">A perfect score is</label>
+        <input type="number" step="0.5" id="perfect_score_value" name="perfect_score_value"
+               value="{{ season.settings.perfect_score_value }}">
+      </div>
+    </div>
+    <p class="muted" style="font-size:12.5px">
+      "A perfect score is" only drives the heads-up on the week page (30 with three judges, 40 with four).
+      Judges' scores never turn into fantasy points.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <div class="card-head"><h2>Players</h2>
+      <span class="hint">Rename anyone here; colours follow the order they were added</span></div>
+    {% for p in season.players %}
+      <div class="field-row" style="margin-bottom:10px">
+        <input type="hidden" name="player_ids" value="{{ p.id }}">
+        <div class="tight" style="padding-bottom:9px">
+          <span class="swatch" style="background: var(--series-{{ p.series_index }})"></span>
+        </div>
+        <div>
+          <input type="text" name="player_name_{{ p.id }}" value="{{ p.name }}"
+                 aria-label="Player name">
+        </div>
+        <div class="tight dim" style="padding-bottom:9px;font-size:13px">
+          {{ p.couples|length }} couples &middot; {{ p.total|pts }} pts
+        </div>
+        <div class="tight">
+          <button class="btn btn-sm btn-danger" type="submit" formnovalidate
+                  formaction="{{ url_for('delete_player', player_id=p.id) }}"
+                  onclick="return confirm('Remove {{ p.name }}? Their couples go back in the pool.')">
+            Remove
+          </button>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary" type="submit">Save settings</button>
+  </div>
+</form>
+
+<div class="card" style="margin-top:18px">
+  <div class="card-head"><h2>Add a player</h2></div>
+  <form method="post" action="{{ url_for('add_player') }}">
+    <div class="field-row">
+      <div>
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" placeholder="e.g. Tim" required>
+      </div>
+      <div class="tight"><button class="btn" type="submit">Add player</button></div>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="margin-top:18px">
+  <div class="card-head"><h2>Backup</h2></div>
+  <p class="dim">
+    Everything lives in one SQLite file. <a class="linkish" href="{{ url_for('export_json') }}">Download a JSON snapshot</a>
+    before the finale, or just copy <code>data/league.db</code>.
+  </p>
+</div>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Rankings &middot; {{ league_name }}{% endblock %}
+
+{% block content %}
+{% set places = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"] %}
+
+<div class="page-head">
+  <div>
+    <h1>Rankings</h1>
+    <p class="sub">
+      {% if season.completed_weeks %}
+        Through {{ season.completed_weeks|length }} completed
+        week{{ '' if season.completed_weeks|length == 1 else 's' }}
+        &middot; {{ season.couples|selectattr('is_out', 'equalto', false)|list|length }} couples still dancing
+      {% else %}
+        Nothing scored yet &mdash; the season starts once you mark a week complete.
+      {% endif %}
+    </p>
+  </div>
+  <div class="actions" style="margin:0">
+    <a class="btn" href="{{ url_for('weeks') }}">Enter a week</a>
+    <a class="btn btn-primary" href="{{ url_for('teams') }}">See the teams</a>
+  </div>
+</div>
+
+{% if not season.couples %}
+  <div class="card">
+    <h2>Let's get the draft in</h2>
+    <p class="dim" style="margin-top:8px">
+      Add this season's couples on the <a class="linkish" href="{{ url_for('draft') }}">Draft</a> page
+      and assign four to each of {{ season.players|map(attribute='name')|join(', ') }}.
+      Then come back here after the first results night.
+    </p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{ url_for('draft') }}">Open the draft board</a>
+    </div>
+  </div>
+{% else %}
+
+<div class="podium">
+  {% for p in table %}
+    <div class="rank-card {{ 'lead' if loop.first and p.total > 0 }}"
+         style="--accent-series: var(--series-{{ p.series_index }})">
+      <div class="place">
+        {% if loop.first and p.total > 0 %}<span class="crown">&#9733;</span>{% endif %}
+        {{ places[p.rank - 1] }} place
+      </div>
+      <div class="who">
+        <span class="swatch" style="background: var(--series-{{ p.series_index }})"></span>
+        <h2>{{ p.name }}</h2>
+      </div>
+      <div class="score">
+        <b>{{ p.total|pts }}</b><span>points</span>
+      </div>
+      <div class="meta">
+        {{ p.alive }} of {{ p.couples|length }} couples still in
+        {% if p.couples|selectattr('won')|list %} &middot; <span class="crown">mirrorball winner</span>{% endif %}
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+{% if chart %}
+  <div class="card" style="margin-top:18px">
+    <div class="card-head">
+      <h2>Points over the season</h2>
+      <span class="hint">Hover the chart for any week's totals</span>
+    </div>
+    <div class="chart-wrap" data-chart='{{ chart.data }}'>
+      {{ chart.svg|safe }}
+      <div class="tooltip"></div>
+    </div>
+  </div>
+{% endif %}
+
+<div class="card" style="margin-top:18px">
+  <div class="card-head">
+    <h2>Where the points came from</h2>
+    <span class="hint">
+      {{ season.points.survive|pts }} per week survived &middot;
+      {{ season.points.highest|pts }} top score &middot;
+      {{ season.points.perfect|pts }} first perfect &middot;
+      {{ season.points.finale|pts }} finale &middot;
+      {{ season.points.win|pts }} the win
+    </span>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th class="num">Survived</th>
+          <th class="num">Top score</th>
+          <th class="num">Perfect</th>
+          <th class="num">Finale</th>
+          <th class="num">Won it</th>
+          {% if season.points.eliminated %}<th class="num">Eliminations</th>{% endif %}
+          <th class="num">Still in</th>
+          <th class="num">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in table %}
+          {% set b = p.breakdown() %}
+          <tr>
+            <td class="tnum">{{ p.rank }}</td>
+            <td>
+              <span style="display:inline-flex;align-items:center;gap:8px">
+                <span class="swatch" style="background: var(--series-{{ p.series_index }})"></span>
+                {{ p.name }}
+              </span>
+            </td>
+            <td class="num">{{ b.survive|pts }}</td>
+            <td class="num">{{ b.highest|pts }}</td>
+            <td class="num">{{ b.perfect|pts }}</td>
+            <td class="num">{{ b.finale|pts }}</td>
+            <td class="num">{{ b.win|pts }}</td>
+            {% if season.points.eliminated %}<td class="num">{{ b.eliminated|pts }}</td>{% endif %}
+            <td class="num">{{ p.alive }}/{{ p.couples|length }}</td>
+            <td class="num total">{{ p.total|pts }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if season.unassigned %}
+  <div class="card" style="margin-top:18px">
+    <div class="card-head"><h2>Still on the board</h2>
+      <span class="hint">{{ season.unassigned|length }} undrafted</span></div>
+    <p class="dim">
+      {{ season.unassigned|map(attribute='name')|join(' &middot; ')|safe }}
+    </p>
+    <div class="actions">
+      <a class="btn btn-sm" href="{{ url_for('draft') }}">Assign them</a>
+    </div>
+  </div>
+{% endif %}
+
+{% endif %}
+{% endblock %}
