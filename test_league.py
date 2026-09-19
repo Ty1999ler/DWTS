@@ -14,8 +14,13 @@ from pathlib import Path
 
 TMP = Path(tempfile.mkdtemp()) / "test.db"
 os.environ["DWTS_DB"] = str(TMP)
+# This suite builds its own twelve-couple cast, so keep the real season out of
+# it. Section 15 turns seeding back on and tests it against its own database.
+os.environ["DWTS_NO_SEED"] = "1"
 
 import app as application  # noqa: E402  (must follow the env var)
+import cast_data  # noqa: E402
+import db as dbmod  # noqa: E402
 from db import connect, get_settings  # noqa: E402
 from scoring import build_season, standings  # noqa: E402
 
@@ -313,6 +318,40 @@ client.post(
 )
 check("the cast page can still rename", couple("Rosa Vega-Hale").celebrity, "Rosa Vega-Hale")
 check("cast page renders", client.get("/cast").status_code, 200)
+
+print("\n15. A brand-new database loads the whole cast by itself")
+fresh_path = Path(tempfile.mkdtemp()) / "fresh.db"
+os.environ.pop("DWTS_NO_SEED", None)
+original_path, dbmod.DB_PATH = dbmod.DB_PATH, fresh_path
+fresh = dbmod.connect()
+dbmod.init_db(fresh)
+
+
+def count(sql: str) -> int:
+    return fresh.execute(f"SELECT COUNT(*) FROM {sql}").fetchone()[0]
+
+
+check("the full season 35 cast is there", count("couples"), 16)
+check("cast_data holds all sixteen", len(cast_data.CAST), 16)
+check("players seeded too", count("players"), 3)
+check("nobody drafted yet", count("couples WHERE player_id IS NOT NULL"), 0)
+check("every pro partner filled in", count("couples WHERE pro = ''"), 0)
+check("the aired weeks exist", count("weeks"), len(cast_data.AIRED))
+check("but none of them count yet", count("weeks WHERE completed = 1"), 0)
+check("with their eliminations pencilled in", count("week_couples WHERE eliminated = 1"), 2)
+
+dbmod.init_db(fresh)
+check("re-opening doesn't duplicate the cast", count("couples"), 16)
+
+# A couple you delete on purpose has to stay deleted across restarts.
+fresh.execute("DELETE FROM couples WHERE celebrity = 'Conner Leavitt'")
+fresh.commit()
+dbmod.init_db(fresh)
+check("a deleted couple stays deleted", count("couples WHERE celebrity = 'Conner Leavitt'"), 0)
+check("and the rest are untouched", count("couples"), 15)
+
+fresh.close()
+dbmod.DB_PATH = original_path
 
 print("\n" + "=" * 60)
 if failures:

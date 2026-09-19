@@ -102,6 +102,20 @@ def init_db(conn: sqlite3.Connection) -> None:
             conn.execute(
                 "INSERT INTO players (name, sort_order) VALUES (?, ?)", (name, i)
             )
+
+    # Load the season's cast the first time this database is opened, so a fresh
+    # deploy has a full draft board with nothing to run by hand. The flag means
+    # couples you deliberately delete stay deleted. DWTS_NO_SEED=1 skips it
+    # entirely, for starting a season from scratch.
+    seeded = conn.execute(
+        "SELECT value FROM settings WHERE key = 'cast_seeded'"
+    ).fetchone()
+    if not seeded and not os.environ.get("DWTS_NO_SEED"):
+        import cast_data
+
+        cast_data.seed(conn)
+        set_setting(conn, "cast_seeded", "1")
+
     conn.commit()
 
 

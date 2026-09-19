@@ -14,6 +14,8 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parent
 DEMO_DB = BASE / "data" / "demo.db"
 os.environ.setdefault("DWTS_DB", str(DEMO_DB))
+# The demo has its own invented cast; don't let the real season seed on top.
+os.environ.setdefault("DWTS_NO_SEED", "1")
 
 import db  # noqa: E402
 from app import app  # noqa: E402

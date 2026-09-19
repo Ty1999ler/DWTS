@@ -81,6 +81,7 @@ Environment variables:
 | `DWTS_PORT` | `5000` locally, `8035` in Compose | Port for `python app.py`, and the host port in `docker-compose.yml`. With bare gunicorn, set it in `-b` instead |
 | `DWTS_HOST` | `127.0.0.1` | Set to `0.0.0.0` to accept outside connections |
 | `DWTS_SECRET` | random each start | Signs the "saved" banners. Set it if you run more than one worker |
+| `DWTS_NO_SEED` | unset | Set to `1` to start with an empty cast instead of seeding `cast_data.py` |
 
 Everything is in one SQLite file. Back it up by copying `data/league.db`, or
 grab a JSON snapshot from the **Download a backup** link in the footer.
@@ -89,20 +90,18 @@ grab a JSON snapshot from the **Download a backup** link in the footer.
 
 ## How a season runs
 
-0. **Load the cast** (already done for season 35):
+0. **Nothing.** A new database loads the cast on first start — all 16 season 35
+   couples on the draft board, undrafted, plus the two premiere weeks as
+   **uncounted drafts** with their eliminations pencilled in. Nothing scores
+   until you open each week and tick "count this week".
 
-   ```bash
-   .venv/Scripts/python.exe load_cast.py
-   ```
+   The list lives in [`cast_data.py`](cast_data.py) — replace it for a future
+   season. Couples you delete stay deleted; seeding only happens once.
 
-   Puts all 16 season 35 couples on the draft board, undrafted, and creates the
-   two premiere weeks as **uncounted drafts** with their eliminations pencilled
-   in. Safe to re-run — it skips couples that already exist and won't touch
-   weeks you've created. Edit `CAST` in that file for a future season.
-
-1. **Draft** — assign four couples to each player. Twelve of the sixteen get
-   picked; the rest sit in the pool and score for nobody. Reassign any time;
-   points follow the couple, not the slot.
+1. **Draft** — assign four couples to each player on the Draft page. Twelve of
+   the sixteen get picked; the rest sit on the board and score for nobody.
+   Reassign any time; points follow the couple, not the slot. Names can't be
+   edited here — that's the Cast page, linked under the Save button.
 2. **After each results show** — Weeks → *Add a week* → tick who went home and
    who topped the leaderboard, optionally type in the judges' scores, then tick
    **Count this week in the standings**. A week left unticked is a draft and
@@ -145,7 +144,8 @@ and flag a possible first perfect score.
 | `templates/` | Pages |
 | `static/` | One stylesheet, one small script (theme toggle + chart hover) |
 | `docker-compose.yml` | The server deployment — `docker compose up -d --build` |
-| `load_cast.py` | The real season 35 cast — edit this for a future season |
+| `cast_data.py` | The season 35 cast, and the first-start seeding — edit for a new season |
+| `load_cast.py` | Reloads the cast by hand; rarely needed since it seeds itself |
 | `test_league.py` | Plays a whole fake season through the real routes and checks the maths |
 | `demo.py` | Optional sample league |
 
