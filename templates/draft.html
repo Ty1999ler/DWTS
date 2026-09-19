@@ -7,23 +7,24 @@
   <div>
     <h1>Draft board</h1>
     <p class="sub">
-      Add every couple in the cast, then hand {{ roster_size }} to each player.
-      You can reassign at any time &mdash; scores follow the couple.
+      Pick {{ roster_size }} couples each from the cast below. You can reassign at
+      any time &mdash; points follow the couple.
     </p>
   </div>
 </div>
 
 <div class="grid-3" style="margin-bottom:18px">
   {% for p in season.players %}
+    {% set over = p.couples|length > roster_size %}
     <div class="rank-card" style="--accent-series: var(--series-{{ p.series_index }})">
       <div class="who" style="margin-top:0">
         <span class="swatch" style="background: var(--series-{{ p.series_index }})"></span>
         <h2>{{ p.name }}</h2>
       </div>
       <div class="meta">
-        <strong class="tnum" style="color:var(--ink)">{{ p.couples|length }}</strong> of {{ roster_size }} picks used
-        {% if p.couples|length > roster_size %}
-          &middot; <span style="color:var(--critical)">over the limit</span>
+        <strong style="color:var(--ink)">{{ p.couples|length }}</strong> of {{ roster_size }} picks used
+        {% if over %}
+          &middot; <span style="color:var(--critical)">{{ p.couples|length - roster_size }} over the limit</span>
         {% elif p.couples|length < roster_size %}
           &middot; {{ roster_size - p.couples|length }} to go
         {% else %}
@@ -37,98 +38,72 @@
   {% endfor %}
 </div>
 
-<div class="card">
-  <div class="card-head">
-    <h2>Add a couple</h2>
-    <span class="hint">Leave "drafted by" empty to park them in the pool</span>
+{% if not season.couples %}
+  <div class="card">
+    <h2>No cast loaded</h2>
+    <p class="dim" style="margin-top:8px">
+      There's nobody to draft yet. Add this season's couples on the
+      <a class="linkish" href="{{ url_for('cast') }}">cast page</a> first.
+    </p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{ url_for('cast') }}">Set up the cast</a>
+    </div>
   </div>
-  <form method="post" action="{{ url_for('add_couple') }}">
-    <div class="field-row">
-      <div>
-        <label for="celebrity">Celebrity</label>
-        <input type="text" id="celebrity" name="celebrity" placeholder="The celebrity" required>
-      </div>
-      <div>
-        <label for="pro">Pro partner</label>
-        <input type="text" id="pro" name="pro" placeholder="Their pro dancer">
-      </div>
-      <div>
-        <label for="player_id">Drafted by</label>
-        <select id="player_id" name="player_id">
-          <option value="">— nobody yet —</option>
-          {% for p in season.players %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
-        </select>
-      </div>
-      <div class="tight">
-        <button class="btn btn-primary" type="submit">Add couple</button>
-      </div>
-    </div>
-  </form>
-</div>
-
+{% else %}
 <form method="post" action="{{ url_for('save_draft') }}">
-  <div class="card" style="margin-top:18px">
+  <div class="card">
     <div class="card-head">
-      <h2>The cast</h2>
-      <span class="hint">{{ season.couples|length }} couples &middot; {{ season.unassigned|length }} undrafted</span>
+      <h2>Make the picks</h2>
+      <span class="hint">
+        {{ season.couples|length }} couples &middot; {{ season.unassigned|length }} still on the board
+      </span>
     </div>
 
-    {% if season.couples %}
-      <div class="table-scroll">
-        <table>
-          <thead>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th colspan="2">Couple</th>
+            <th>Drafted by</th>
+            <th class="num">Points</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in season.couples %}
             <tr>
-              <th></th><th>Celebrity</th><th>Pro partner</th><th>Drafted by</th>
-              <th>Photo URL<br><span style="text-transform:none;letter-spacing:0;font-weight:400">optional</span></th>
-              <th class="num">Points</th><th>Status</th><th></th>
+              <td style="width:1%">{{ avatar(c, 34) }}</td>
+              <td>
+                <input type="hidden" name="couple_ids" value="{{ c.id }}">
+                <strong>{{ c.celebrity }}</strong>
+                {% if c.pro %}<span class="muted">&amp; {{ c.pro }}</span>{% endif %}
+              </td>
+              <td style="min-width:150px">
+                <select name="player_{{ c.id }}" aria-label="Who drafted {{ c.celebrity }}">
+                  <option value="">&mdash; on the board &mdash;</option>
+                  {% for p in season.players %}
+                    <option value="{{ p.id }}" {{ 'selected' if c.player_id == p.id }}>{{ p.name }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td class="num">
+                <a class="linkish" href="{{ url_for('couple_detail', couple_id=c.id) }}">{{ c.total|pts }}</a>
+              </td>
+              <td class="dim" style="white-space:nowrap">{{ c.status }}</td>
             </tr>
-          </thead>
-          <tbody>
-            {% for c in season.couples %}
-              <tr>
-                <td style="width:1%">{{ avatar(c, 34) }}</td>
-                <td>
-                  <input type="hidden" name="couple_ids" value="{{ c.id }}">
-                  <input type="text" name="celebrity_{{ c.id }}" value="{{ c.celebrity }}"
-                         aria-label="Celebrity name">
-                </td>
-                <td><input type="text" name="pro_{{ c.id }}" value="{{ c.pro }}" aria-label="Pro partner"></td>
-                <td>
-                  <select name="player_{{ c.id }}" aria-label="Drafted by">
-                    <option value="">— undrafted —</option>
-                    {% for p in season.players %}
-                      <option value="{{ p.id }}" {{ 'selected' if c.player_id == p.id }}>{{ p.name }}</option>
-                    {% endfor %}
-                  </select>
-                </td>
-                <td>
-                  <input type="text" name="photo_{{ c.id }}" value="{{ c.photo_url }}"
-                         placeholder="https://…" aria-label="Photo URL">
-                </td>
-                <td class="num">
-                  <a class="linkish" href="{{ url_for('couple_detail', couple_id=c.id) }}">{{ c.total|pts }}</a>
-                </td>
-                <td class="dim" style="white-space:nowrap">{{ c.status }}</td>
-                <td>
-                  <button class="btn btn-sm btn-danger" type="submit"
-                          formaction="{{ url_for('delete_couple', couple_id=c.id) }}"
-                          formnovalidate
-                          onclick="return confirm('Remove {{ c.celebrity }} and all their results?')">
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
-      <div class="actions">
-        <button class="btn btn-primary" type="submit">Save draft board</button>
-      </div>
-    {% else %}
-      <p class="muted">No couples yet. Add the first one above.</p>
-    {% endif %}
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">Save picks</button>
+      <span class="muted" style="font-size:13px">
+        Need to add, rename or remove a couple?
+        <a class="linkish" href="{{ url_for('cast') }}">Manage the cast</a>
+      </span>
+    </div>
   </div>
 </form>
+{% endif %}
 {% endblock %}

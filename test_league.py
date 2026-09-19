@@ -260,17 +260,16 @@ check("no photo falls back to initials", avatar_initials(draft_html, "Rosa Vega"
 # mistyped URL has to degrade to initials, not to an empty circle.
 current = season().couples
 client.post(
-    "/draft/save",
+    "/cast/save",
     data={
         "couple_ids": [c.id for c in current],
         **{f"celebrity_{c.id}": c.celebrity for c in current},
         **{f"pro_{c.id}": c.pro for c in current},
-        **{f"player_{c.id}": (c.player_id or "") for c in current},
         f"photo_{rosa.id}": "https://example.invalid/rosa.jpg",
     },
 )
 check("photo url saved", couple("Rosa Vega").photo_url, "https://example.invalid/rosa.jpg")
-draft_html = client.get("/draft").get_data(as_text=True)
+draft_html = client.get("/cast").get_data(as_text=True)
 check("photo renders as an img", "https://example.invalid/rosa.jpg" in draft_html, True)
 check("a broken photo removes itself", 'onerror="this.remove()"' in draft_html, True)
 check("initials still sit behind it", avatar_initials(draft_html, "Rosa Vega"), "RV")
@@ -279,6 +278,41 @@ check(
     [player(n).total for n in ("Laura", "Madison", "Deborah")],
     [15, 16, 23],
 )
+
+print("\n14. Drafting can only pick from the cast, never type a name")
+draft_html = client.get("/draft").get_data(as_text=True)
+check("no celebrity text box on the draft board", "celebrity_" in draft_html, False)
+check("no add-a-couple form on the draft board", 'name="celebrity"' in draft_html, False)
+check("picking is a dropdown", f'name="player_{rosa.id}"' in draft_html, True)
+
+# Even a hand-crafted POST can't rename through the draft route.
+client.post(
+    "/draft/save",
+    data={
+        "couple_ids": [rosa.id],
+        f"celebrity_{rosa.id}": "Hacked Name",
+        f"pro_{rosa.id}": "Hacked Pro",
+        f"photo_{rosa.id}": "https://example.invalid/hacked.jpg",
+        f"player_{rosa.id}": player("Laura").id,
+    },
+)
+after = couple("Rosa Vega")
+check("the name survived", after.celebrity, "Rosa Vega")
+check("the pro survived", after.pro, "Kit Lang")
+check("the photo survived", after.photo_url, "https://example.invalid/rosa.jpg")
+check("but the pick went through", after.player_name, "Laura")
+
+# Renaming still works where it's supposed to.
+client.post(
+    "/cast/save",
+    data={
+        "couple_ids": [rosa.id],
+        f"celebrity_{rosa.id}": "Rosa Vega-Hale",
+        f"pro_{rosa.id}": "Kit Lang",
+    },
+)
+check("the cast page can still rename", couple("Rosa Vega-Hale").celebrity, "Rosa Vega-Hale")
+check("cast page renders", client.get("/cast").status_code, 200)
 
 print("\n" + "=" * 60)
 if failures:

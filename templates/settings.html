@@ -124,6 +124,18 @@
 </div>
 
 <div class="card" style="margin-top:18px">
+  <div class="card-head">
+    <h2>The cast</h2>
+    <span class="hint">Add, rename or remove couples</span>
+  </div>
+  <p class="dim">
+    {{ season.couples|length }} couples this season.
+    Names are edited on the <a class="linkish" href="{{ url_for('cast') }}">cast page</a>,
+    kept separate from the draft board so nobody renames a couple while picking.
+  </p>
+</div>
+
+<div class="card" style="margin-top:18px">
   <div class="card-head"><h2>Backup</h2></div>
   <p class="dim">
     Everything lives in one SQLite file. <a class="linkish" href="{{ url_for('export_json') }}">Download a JSON snapshot</a>

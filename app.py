@@ -169,7 +169,7 @@ def add_couple():
     celebrity = request.form.get("celebrity", "").strip()
     if not celebrity:
         flash("A couple needs a celebrity name.", "warn")
-        return redirect(url_for("draft"))
+        return redirect(url_for("cast"))
     next_order = conn.execute(
         "SELECT COALESCE(MAX(sort_order), -1) + 1 FROM couples"
     ).fetchone()[0]
@@ -185,31 +185,53 @@ def add_couple():
         ),
     )
     conn.commit()
-    flash(f"Added {celebrity}.", "ok")
-    return redirect(url_for("draft"))
+    flash(f"Added {celebrity} to the cast.", "ok")
+    return redirect(url_for("cast"))
 
 
 @app.post("/draft/save")
 def save_draft():
+    """Assign couples to players. Deliberately cannot touch a couple's name -
+    drafting is picking from the cast, not typing one in. Names live on /cast."""
+    conn = get_db()
+    for couple_id in request.form.getlist("couple_ids", type=int):
+        conn.execute(
+            "UPDATE couples SET player_id = ? WHERE id = ?",
+            (_int(f"player_{couple_id}"), couple_id),
+        )
+    conn.commit()
+    flash("Picks saved.", "ok")
+    return redirect(url_for("draft"))
+
+
+# ------------------------------------------------------------------------ cast
+
+
+@app.route("/cast")
+def cast():
+    season = build_season(get_db())
+    return render_template("cast.html", season=season)
+
+
+@app.post("/cast/save")
+def save_cast():
     conn = get_db()
     for couple_id in request.form.getlist("couple_ids", type=int):
         celebrity = request.form.get(f"celebrity_{couple_id}", "").strip()
         if not celebrity:
             continue
         conn.execute(
-            "UPDATE couples SET celebrity = ?, pro = ?, photo_url = ?, player_id = ? "
-            "WHERE id = ?",
+            "UPDATE couples SET celebrity = ?, pro = ?, photo_url = ? WHERE id = ?",
             (
                 celebrity,
                 request.form.get(f"pro_{couple_id}", "").strip(),
                 request.form.get(f"photo_{couple_id}", "").strip(),
-                _int(f"player_{couple_id}"),
                 couple_id,
             ),
         )
     conn.commit()
-    flash("Draft board saved.", "ok")
-    return redirect(url_for("draft"))
+    flash("Cast saved.", "ok")
+    return redirect(url_for("cast"))
 
 
 @app.post("/draft/couple/<int:couple_id>/delete")
@@ -217,8 +239,8 @@ def delete_couple(couple_id: int):
     conn = get_db()
     conn.execute("DELETE FROM couples WHERE id = ?", (couple_id,))
     conn.commit()
-    flash("Couple removed.", "ok")
-    return redirect(url_for("draft"))
+    flash("Couple removed from the cast.", "ok")
+    return redirect(url_for("cast"))
 
 
 # --------------------------------------------------------------------- players

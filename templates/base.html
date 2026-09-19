@@ -29,7 +29,7 @@
       <a href="{{ url_for('index') }}"    class="{{ 'on' if page == 'index' }}">Rankings</a>
       <a href="{{ url_for('teams') }}"    class="{{ 'on' if page in ('teams', 'couple_detail') }}">Teams</a>
       <a href="{{ url_for('weeks') }}"    class="{{ 'on' if page in ('weeks', 'week_detail') }}">Weeks</a>
-      <a href="{{ url_for('draft') }}"    class="{{ 'on' if page == 'draft' }}">Draft</a>
+      <a href="{{ url_for('draft') }}"    class="{{ 'on' if page in ('draft', 'cast') }}">Draft</a>
       <a href="{{ url_for('finale') }}"   class="{{ 'on' if page == 'finale' }}">Finale</a>
       <a href="{{ url_for('settings') }}" class="{{ 'on' if page == 'settings' }}">Settings</a>
     </nav>

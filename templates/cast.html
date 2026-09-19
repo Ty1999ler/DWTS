@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% from "macros.html" import avatar %}
+{% block title %}Cast &middot; {{ league_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>The cast</h1>
+    <p class="sub">
+      Who is in this season. Changing anything here changes it everywhere &mdash;
+      the draft, the standings, every week already entered.
+    </p>
+  </div>
+  <a class="btn" href="{{ url_for('draft') }}">Back to the draft</a>
+</div>
+
+<p class="note" style="margin-bottom:18px">
+  This page is for fixing the cast list, not for drafting. Picks are made on the
+  <a class="linkish" href="{{ url_for('draft') }}">draft board</a>, where the names
+  can't be edited by accident.
+</p>
+
+<div class="card">
+  <div class="card-head">
+    <h2>Add a couple</h2>
+    <span class="hint">Only needed if someone's missing from the list below</span>
+  </div>
+  <form method="post" action="{{ url_for('add_couple') }}">
+    <div class="field-row">
+      <div>
+        <label for="celebrity">Celebrity</label>
+        <input type="text" id="celebrity" name="celebrity" placeholder="The celebrity" required>
+      </div>
+      <div>
+        <label for="pro">Pro partner</label>
+        <input type="text" id="pro" name="pro" placeholder="Their pro dancer">
+      </div>
+      <div>
+        <label for="photo_url">Photo URL (optional)</label>
+        <input type="text" id="photo_url" name="photo_url" placeholder="https://…">
+      </div>
+      <div class="tight">
+        <button class="btn" type="submit">Add to cast</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<form method="post" action="{{ url_for('save_cast') }}">
+  <div class="card" style="margin-top:18px">
+    <div class="card-head">
+      <h2>Everyone in the season</h2>
+      <span class="hint">{{ season.couples|length }} couples</span>
+    </div>
+
+    {% if season.couples %}
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th></th><th>Celebrity</th><th>Pro partner</th>
+              <th>Photo URL<br><span style="text-transform:none;letter-spacing:0;font-weight:400">optional</span></th>
+              <th>Drafted by</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in season.couples %}
+              <tr>
+                <td style="width:1%">{{ avatar(c, 34) }}</td>
+                <td>
+                  <input type="hidden" name="couple_ids" value="{{ c.id }}">
+                  <input type="text" name="celebrity_{{ c.id }}" value="{{ c.celebrity }}"
+                         aria-label="Celebrity name">
+                </td>
+                <td><input type="text" name="pro_{{ c.id }}" value="{{ c.pro }}" aria-label="Pro partner"></td>
+                <td>
+                  <input type="text" name="photo_{{ c.id }}" value="{{ c.photo_url }}"
+                         placeholder="https://…" aria-label="Photo URL">
+                </td>
+                <td class="dim" style="white-space:nowrap">
+                  {% if c.player_name %}
+                    <span style="display:inline-flex;align-items:center;gap:7px">
+                      <span class="swatch" style="background: var(--series-{{ c.series_index }})"></span>
+                      {{ c.player_name }}
+                    </span>
+                  {% else %}
+                    <span class="muted">&mdash;</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-danger" type="submit"
+                          formaction="{{ url_for('delete_couple', couple_id=c.id) }}"
+                          formnovalidate
+                          onclick="return confirm('Remove {{ c.celebrity }} from the cast, along with every result entered for them?')">
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" type="submit">Save cast</button>
+      </div>
+    {% else %}
+      <p class="muted">
+        Nobody yet. Add them above, or run <code>python load_cast.py</code> to load
+        the whole season at once.
+      </p>
+    {% endif %}
+  </div>
+</form>
+{% endblock %}
