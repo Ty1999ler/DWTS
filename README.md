@@ -29,6 +29,9 @@ real league is untouched) and serves it on <http://127.0.0.1:5001>.
 
 ### On your server
 
+Pick a port nothing else is on — check with `ss -tlnp | grep :8000`. Empty
+output means it's free.
+
 ```bash
 pip install -r requirements.txt
 gunicorn -w 1 -b 0.0.0.0:8000 app:app
@@ -38,8 +41,11 @@ Or with Docker:
 
 ```bash
 docker build -t dwts .
-docker run -d --restart unless-stopped -p 8000:8000 -v $(pwd)/data:/app/data dwts
+docker run -d --restart unless-stopped -p 8035:8035 -e DWTS_PORT=8035 -v $(pwd)/data:/app/data dwts
 ```
+
+Swap `8035` for whatever port is free. Both halves of `-p` and the `-e` should
+match, so the port is the same inside and outside the container.
 
 One worker is deliberate — it's ample for three people and keeps a single
 process talking to the SQLite file. Put nginx or Caddy in front of it for TLS.
@@ -49,7 +55,7 @@ Environment variables:
 | Variable | Default | What it does |
 |---|---|---|
 | `DWTS_DB` | `data/league.db` | Where the database file lives |
-| `DWTS_PORT` | `5000` | Port for `python app.py` |
+| `DWTS_PORT` | `5000` (`8000` in Docker) | Port for `python app.py` and for the Docker image. With gunicorn, set the port in `-b` instead |
 | `DWTS_HOST` | `127.0.0.1` | Set to `0.0.0.0` to accept outside connections |
 | `DWTS_SECRET` | random each start | Signs the "saved" banners. Set it if you run more than one worker |
 
