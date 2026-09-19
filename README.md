@@ -48,6 +48,11 @@ The database lives in `./data` on the host, bind-mounted in, so rebuilds never
 touch it and a backup is copying that folder. `restart: unless-stopped` brings
 it back after a reboot. Put nginx or Caddy in front for TLS and a hostname.
 
+`data/` is committed (empty) on purpose: Synology's Docker daemon refuses to
+start a container whose bind-mount source doesn't exist rather than creating
+it. If you ever hit `Bind mount failed: ... does not exists`, the fix is
+`mkdir -p data`.
+
 ### On your server — without Docker
 
 ```bash

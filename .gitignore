@@ -1,5 +1,9 @@
 .venv/
 __pycache__/
 *.pyc
-data/
 .idea/
+
+# Keep the data/ folder itself in the repo - Synology's Docker daemon refuses
+# to create a missing bind-mount source - but never commit a league database.
+data/*
+!data/.gitkeep
