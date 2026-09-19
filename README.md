@@ -31,7 +31,7 @@ real league is untouched) and serves it on <http://127.0.0.1:5001>.
 
 ```bash
 pip install -r requirements.txt
-gunicorn -w 2 -b 0.0.0.0:8000 app:app
+gunicorn -w 1 -b 0.0.0.0:8000 app:app
 ```
 
 Or with Docker:
@@ -41,7 +41,10 @@ docker build -t dwts .
 docker run -d --restart unless-stopped -p 8000:8000 -v $(pwd)/data:/app/data dwts
 ```
 
-Put nginx or Caddy in front of it for TLS. Environment variables:
+One worker is deliberate — it's ample for three people and keeps a single
+process talking to the SQLite file. Put nginx or Caddy in front of it for TLS.
+
+Environment variables:
 
 | Variable | Default | What it does |
 |---|---|---|

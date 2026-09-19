@@ -12,4 +12,6 @@ VOLUME /app/data
 ENV DWTS_DB=/app/data/league.db
 
 EXPOSE 8000
-CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:8000", "app:app"]
+# One worker on purpose: plenty for a three-person league, and it keeps a
+# single process talking to the SQLite file.
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:8000", "app:app"]
